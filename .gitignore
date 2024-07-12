@@ -1,0 +1,43 @@
+﻿################################################################################
+# Bu .gitignore dosyası Microsoft(R) Visual Studio tarafından otomatik olarak oluşturulmuştur.
+################################################################################
+
+/.bash_history
+/.dotnet
+/.eclipse
+/.gitconfig
+/.librarymanager
+/.local
+/.nuget
+/.popsql.json
+/.rest-client
+/.templateengine
+/.vs
+/.vscode
+/AppData
+/Contacts
+/CsharpProjects
+/Desktop
+/Documents
+/Downloads
+/dump-websitesidatabase-202407101740.sql
+/dump-websitesidatabase-202407101741.sql
+/dump-websitesidatabase-202407101744.sql
+/Favorites
+/Links
+/Music
+/NTUSER.DAT
+/ntuser.dat.LOG1
+/ntuser.dat.LOG2
+/NTUSER.DAT{5533dd81-bcfe-11ed-a575-f0137e239f56}.TM.blf
+/NTUSER.DAT{5533dd81-bcfe-11ed-a575-f0137e239f56}.TMContainer00000000000000000001.regtrans-ms
+/NTUSER.DAT{5533dd81-bcfe-11ed-a575-f0137e239f56}.TMContainer00000000000000000002.regtrans-ms
+/ntuser.ini
+/OneDrive
+/OneDrive - Eskisehir Teknik Universitesi
+/OnlineBookStore
+/Saved Games
+/Searches
+/source
+/Videos
+/websitesideneme
