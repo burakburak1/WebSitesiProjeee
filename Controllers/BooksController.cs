@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApiXd.Data;
@@ -17,12 +18,27 @@ public class BooksController : ControllerBase
         _context = context;
     }
 
+    [Authorize]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
+    public async Task<ActionResult<IQueryable<BookGetDto>>> GetBooks()
     {
-        return await _context.Books.ToListAsync();
+        //return await _context.Books.ToListAsync();
+
+        var books = await (from b in _context.Books
+                           select new BookGetDto()
+                           {
+                               BookId = b.BookId,
+                               Title = b.Title,
+                               Author = b.Author,
+                               Genre = b.Genre,
+                               Price = b.Price
+                           }).ToListAsync();
+
+        return Ok(books);
+
     }
 
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<Book>> GetBook(int id)
     {
@@ -36,22 +52,43 @@ public class BooksController : ControllerBase
         return book;
     }
 
+    [Authorize]
     [HttpPost]
-    public async Task<ActionResult<Book>> PostBook(Book book)
+    public async Task<ActionResult<Book>> PostBook(BookPostDto bookDto)
     {
+        var book = new Book
+        {
+            Title = bookDto.Title,
+            Author = bookDto.Author,
+            Genre = bookDto.Genre,
+            Description = bookDto.Description,
+            Price = bookDto.Price,
+            Stock = bookDto.Stock,
+            CreatedAt = bookDto.CreatedAt
+        };
+
         _context.Books.Add(book);
         await _context.SaveChangesAsync();
 
         return CreatedAtAction("GetBook", new { id = book.BookId }, book);
     }
 
+    [Authorize]
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutBook(int id, Book book)
+    public async Task<IActionResult> PutBook(int id, BookUpdateDto bookDto)
     {
-        if (id != book.BookId)
+        var book = await _context.Books.FindAsync(id);
+        if (book == null)
         {
-            return BadRequest();
+            return NotFound();
         }
+
+        book.Title = bookDto.Title;
+        book.Author = bookDto.Author;
+        book.Genre = bookDto.Genre;
+        book.Price = bookDto.Price;
+        book.Stock = bookDto.Stock;
+        book.UpdatedAt = bookDto.UpdatedAt;
 
         _context.Entry(book).State = EntityState.Modified;
 
@@ -74,6 +111,7 @@ public class BooksController : ControllerBase
         return NoContent();
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBook(int id)
     {
