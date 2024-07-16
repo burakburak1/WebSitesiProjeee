@@ -13,11 +13,14 @@ namespace WebApiXd.Data
 
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
         public DbSet<Book> Books { get; set; }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Cart> Carts { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,6 +30,31 @@ namespace WebApiXd.Data
             modelBuilder.Entity<User>()
                 .HasIndex(b => b.UserName)
                 .IsUnique();
+
+            // User-Cart ilişkisi
+            modelBuilder.Entity<Cart>()
+                .HasOne(c => c.Buyer)
+                .WithMany(u => u.Carts)
+                .HasForeignKey(c => c.BuyerId);
+
+            // Cart-CartItem ilişkisi
+            modelBuilder.Entity<CartItem>()
+                .HasOne(ci => ci.Cart)
+                .WithMany(c => c.CartItems)
+                .HasForeignKey(ci => ci.CartId);
+
+            // CartItem-Book ilişkisi
+            modelBuilder.Entity<CartItem>()
+                .HasOne(ci => ci.Book)
+                .WithMany()
+                .HasForeignKey(ci => ci.BookId);
+
+            // Book-User ilişkisi
+            modelBuilder.Entity<Book>()
+                .HasOne(b => b.Seller)
+                .WithMany(u => u.Books)
+                .HasForeignKey(b => b.SellerId)
+                .OnDelete(DeleteBehavior.Cascade); // Or your desired delete behavior
         }
 
 

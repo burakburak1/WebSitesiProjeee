@@ -30,6 +30,14 @@ namespace WebApiXd.Controllers
         public async Task<IActionResult> Register(UserRegisterDto userDto)
         {
 
+            //Geçerli roller listesi
+            var validRoles = new List<string> { "Buyer", "Seller" };
+
+            //Kullanıcının girdiği rolün geçerli olup olmadığını kontrol et
+            if (!validRoles.Contains(userDto.Role))
+            {
+                return BadRequest("Invalid role.Only 'Buyer' or 'Seller' roles are allowed.");        
+            }
 
             if (await _context.Users.AnyAsync(b => b.UserName == userDto.UserName))
             {
@@ -38,9 +46,9 @@ namespace WebApiXd.Controllers
 
             var user = new User
             {
-               UserName = userDto.UserName,
-               Password = userDto.Password,
-               Role = userDto.Role
+                UserName = userDto.UserName,
+                Password = userDto.Password,
+                Role = userDto.Role
             };
 
             user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
@@ -70,14 +78,14 @@ namespace WebApiXd.Controllers
             return Ok(new { token });
         }
 
-        [Authorize(Roles ="Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             return await _context.Users.ToListAsync();
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
@@ -91,7 +99,7 @@ namespace WebApiXd.Controllers
             return user;
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(User user)
         {
@@ -102,7 +110,7 @@ namespace WebApiXd.Controllers
             return CreatedAtAction("GetUser", new { id = user.UserId }, user);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser(int id, User user)
         {
@@ -134,7 +142,7 @@ namespace WebApiXd.Controllers
             return NoContent();
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,7 +32,8 @@ public class BooksController : ControllerBase
                                Title = b.Title,
                                Author = b.Author,
                                Genre = b.Genre,
-                               Price = b.Price
+                               Price = b.Price,
+                               SellerId = b.SellerId
                            }).ToListAsync();
 
         return Ok(books);
@@ -52,10 +54,11 @@ public class BooksController : ControllerBase
         return book;
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin,Seller")]
     [HttpPost]
     public async Task<ActionResult<Book>> PostBook(BookPostDto bookDto)
     {
+
         var book = new Book
         {
             Title = bookDto.Title,
@@ -64,7 +67,8 @@ public class BooksController : ControllerBase
             Description = bookDto.Description,
             Price = bookDto.Price,
             Stock = bookDto.Stock,
-            CreatedAt = bookDto.CreatedAt
+            CreatedAt = bookDto.CreatedAt,
+            SellerId = bookDto.SellerId
         };
 
         _context.Books.Add(book);
@@ -73,7 +77,7 @@ public class BooksController : ControllerBase
         return CreatedAtAction("GetBook", new { id = book.BookId }, book);
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin,Seller")] //burada seller'ın sadece kendi kitaplarını update edebilmesi gerekiyor.
     [HttpPut("{id}")]
     public async Task<IActionResult> PutBook(int id, BookUpdateDto bookDto)
     {
@@ -111,7 +115,8 @@ public class BooksController : ControllerBase
         return NoContent();
     }
 
-    [Authorize]
+
+    [Authorize(Roles = "Admin,Seller")] //burada seller'ın sadece kendi kitaplarını silebilmesi gerekiyor.
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBook(int id)
     {
