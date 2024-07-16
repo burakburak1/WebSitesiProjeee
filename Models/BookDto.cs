@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using WebApiXd.Models;
 
 namespace WebApiXd.Models
 {
@@ -16,6 +17,8 @@ namespace WebApiXd.Models
         public decimal Price { get; set; }
 
         public int Stock { get; set; }
+
+        public int SellerId { get; set; }
     }
 }
 
@@ -42,6 +45,9 @@ public class BookPostDto
     public decimal Price { get; set; }
 
     public int Stock { get; set; }
+
+    public int SellerId { get; set; }
+    public User? Seller { get; set; }
 
     public DateTime CreatedAt { get; set; } =DateTime.Now;
 
