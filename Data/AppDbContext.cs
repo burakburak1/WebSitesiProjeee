@@ -11,20 +11,51 @@ namespace WebApiXd.Data
         void AddUser(User user);
     }
 
-    public class AppDbContext : DbContext
+    public class AppDbContext : DbContext, IAppDbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-        }
-        public DbSet<Book> Books { get; set; }
+        private readonly IConfiguration _configuration;
 
+        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration)
+            : base(options)
+        {
+            _configuration = configuration;
+        }
+
+        public DbSet<Book> Books { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                var connectionString = _configuration.GetConnectionString("DefaultConnection");
+
+                optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+                    options => options.EnableRetryOnFailure());
+            }
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            modelBuilder.Entity<Book>()
+            .Property(b => b.Price)
+            .HasColumnType("decimal(16, 2)"); // 16 toplam basamak, 2 ondalık basamak
+
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Order>()
+                .HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId);
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Book)
+                .WithMany()
+                .HasForeignKey(oi => oi.BookId);
 
             // UserName kolonunu benzersiz yap
             modelBuilder.Entity<User>()

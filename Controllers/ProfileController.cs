@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WebApiXd.Data;
-using WebApiXd.Services;
+using WebApiXd.Models;
 
 namespace WebApiXd.Controllers
 {
@@ -29,21 +29,7 @@ namespace WebApiXd.Controllers
                 .Include(u => u.Books) // Kullanıcının kitaplarını da dahil et
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
-            if (user == null)
-            {
-                return NotFound("Invalid user ID.");
-            }
-
-            // Kullanıcının kitaplarını getir
-            var books = await _context.Books
-                .Where(b => b.SellerId == userId)
-                .ToListAsync();
-
-            return Ok(new
-            {
-                User = user,
-                Books = books
-            });
+            return Ok(user);
         }
 
         [Authorize]
@@ -51,7 +37,9 @@ namespace WebApiXd.Controllers
         public async Task<IActionResult> UpdateProfile(AppDbContext context, ProfileUpdateDto profileDto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _context.Users.FindAsync(int.Parse(userId));
+            var user = await _context.Users
+                .Include(u => u.Books)
+                .FirstOrDefaultAsync(u => u.UserId == int.Parse(userId));
 
             if (user == null)
             {
@@ -59,15 +47,57 @@ namespace WebApiXd.Controllers
             }
 
             user.UserName = profileDto.UserName;
-            if (!string.IsNullOrEmpty(profileDto.Password))
+            user.Password = BCrypt.Net.BCrypt.HashPassword(profileDto.Password);
+
+            // Mevcut kitapları güncelle
+            foreach (var bookDto in profileDto.Books)
             {
-                user.Password = BCrypt.Net.BCrypt.HashPassword(profileDto.Password);
+                var existingBook = user.Books.FirstOrDefault(b => b.BookId == bookDto.BookId);
+                if (existingBook != null)
+                {
+                    existingBook.Title = bookDto.Title;
+                    existingBook.Author = bookDto.Author;
+                    existingBook.Genre = bookDto.Genre;
+                    existingBook.Description = bookDto.Description;
+                    existingBook.Price = bookDto.Price;
+                    existingBook.Stock = bookDto.Stock;
+                }
+                else
+                {
+                    var newBook = new Book
+                    {
+                        Title = bookDto.Title,
+                        Author = bookDto.Author,
+                        Genre = bookDto.Genre,
+                        Description = bookDto.Description,
+                        Price = bookDto.Price,
+                        Stock = bookDto.Stock,
+                        SellerId = (int)user.UserId // Satıcı ID'si kullanıcı ID'sine eşitlenir
+                    };
+                    user.Books.Add(newBook);
+                }
             }
 
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
 
-            return Ok(user);
+            var result = new
+            {
+                user.UserId,
+                user.UserName,
+                Books = user.Books.Select(b => new
+                {
+                    b.BookId,
+                    b.Title,
+                    b.Author,
+                    b.Genre,
+                    b.Description,
+                    b.Price,
+                    b.Stock
+                })
+            };
+
+            return Ok(result);
         }
 
         [Authorize]

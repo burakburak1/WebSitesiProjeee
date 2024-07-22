@@ -4,6 +4,7 @@ using WebApiXd.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 
 
@@ -13,7 +14,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
-options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"), new MySqlServerVersion(new Version(8, 0, 21))));
+    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
+    ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection")),
+    mySqlOptions => mySqlOptions.EnableRetryOnFailure()));
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddAuthentication(options =>

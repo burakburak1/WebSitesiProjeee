@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,20 +17,42 @@ public class BooksController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet]
-    public async Task<ActionResult<IQueryable<BookGetDto>>> GetBooks()
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<Book>>> Search([FromQuery] string Genre)
     {
-        //return await _context.Books.ToListAsync();
+        if (string.IsNullOrEmpty(Genre))
+        {
+            return BadRequest("Genre must be provided");
+        }
+
+        var books = await _context.Books
+        .Where(b => b.Genre.ToLower() == Genre.ToLower())
+        .ToListAsync();
+
+
+        if (books == null || !books.Any())
+        {
+            return NotFound("No books found for the specified genre");
+        }
+
+        return Ok(books);
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<ActionResult<IQueryable<Book>>> GetBooks()
+    {
 
         var books = await (from b in _context.Books
-                           select new BookGetDto()
+                           select new Book()
                            {
                                BookId = b.BookId,
                                Title = b.Title,
                                Author = b.Author,
                                Genre = b.Genre,
                                Price = b.Price,
-                               SellerId = b.SellerId
+                               Stock = b.Stock,
+                               SellerId = b.SellerId,
                            }).ToListAsync();
 
         return Ok(books);
@@ -58,6 +77,17 @@ public class BooksController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Book>> PostBook(BookPostDto bookDto)
     {
+        // JWT token'dan kullanıcı kimliğini al
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized("User ID not found in token.");
+        }
+
+        var userId = int.Parse(userIdClaim);
+
+        // Kullanıcı kimliğini kitap sellerId olarak ayarla
 
         var book = new Book
         {
@@ -68,16 +98,25 @@ public class BooksController : ControllerBase
             Price = bookDto.Price,
             Stock = bookDto.Stock,
             CreatedAt = bookDto.CreatedAt,
-            SellerId = bookDto.SellerId
+            SellerId = userId // SellerId'yi JWT token'dan alınan userId ile ayarlama
         };
 
+        // Kullanıcının var olduğunu doğrulama
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+        if (user == null)
+        {
+            return NotFound("User not found.");
+        }
+
         _context.Books.Add(book);
+
         await _context.SaveChangesAsync();
 
         return CreatedAtAction("GetBook", new { id = book.BookId }, book);
     }
 
-    [Authorize(Roles = "Admin,Seller")] //burada seller'ın sadece kendi kitaplarını update edebilmesi gerekiyor.
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> PutBook(int id, BookUpdateDto bookDto)
     {
@@ -102,7 +141,7 @@ public class BooksController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!BookExists(id))
+            if (! _context.Books.Any(e => e.BookId == id))
             {
                 return NotFound();
             }
@@ -116,7 +155,7 @@ public class BooksController : ControllerBase
     }
 
 
-    [Authorize(Roles = "Admin,Seller")] //burada seller'ın sadece kendi kitaplarını silebilmesi gerekiyor.
+    [Authorize(Roles = "Admin")] 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBook(int id)
     {
@@ -132,8 +171,5 @@ public class BooksController : ControllerBase
         return NoContent();
     }
 
-    private bool BookExists(int id)
-    {
-        return _context.Books.Any(e => e.BookId == id);
-    }
+
 }
